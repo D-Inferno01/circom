@@ -114,6 +114,8 @@ function gen(ctx, ast) {
         }
     } else if (ast.type == "FUNCTIONCALL") {
         return genFunctionCall(ctx, ast);
+    } else if (ast.type == "COMPUTEBLOCK") {
+        return genBlock(ctx, ast);
     } else if (ast.type == "BLOCK") {
         return genBlock(ctx, ast);
     } else if (ast.type == "FOR") {

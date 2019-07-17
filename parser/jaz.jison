@@ -34,6 +34,7 @@ input                   { return 'input'; }
 output                  { return 'output'; }
 linearCombination       { return 'linearCombination'; }
 component               { return 'component'; }
+compute                 { return 'compute'; }
 template                { return 'template'; }
 function                { return 'function'; }
 if                      { return 'if'; }
@@ -206,6 +207,10 @@ statment
         {
             $$ = $1;
         }
+    | computationBlock
+        {
+            $$ = $1;
+        }
     | expressionStatment
         {
             $$ = $1;
@@ -333,6 +338,14 @@ block
         {
             $$ = { type: "BLOCK", statements: $2.statments };
             setLines($$, @1, @3);
+        }
+    ;
+
+computationBlock
+    : 'compute' '{' statmentList '}'
+        {
+            $$ = { type: "COMPUTEBLOCK", statements: $3.statments };
+            setLines($$, @1, @4);
         }
     ;
 

@@ -43,6 +43,7 @@ async function compile(srcFile, options) {
     const fullFileName = srcFile;
     const fullFilePath = path.dirname(fullFileName);
 
+    if (options.verbose) console.log(`STATUS: Reading circuit at: ${fullFileName}`);
     const src = fs.readFileSync(fullFileName, "utf8");
     const ast = parser.parse(src);
 
@@ -69,25 +70,30 @@ async function compile(srcFile, options) {
     };
 
 
+    if (options.verbose) console.log("STATUS: Compiling circuit to R1CS");
     exec(ctx, ast);
 
     if (!ctx.components["main"]) {
         throw new Error("A main component must be defined");
     }
 
+    if (options.verbose) console.log("STATUS: Classifying signals");
     classifySignals(ctx);
 
+    if (options.verbose) console.log("STATUS: Canonicalizing constraints");
     reduceConstants(ctx);
     if (options.reduceConstraints) {
 
         // Repeat while reductions are performed
         let oldNConstrains = -1;
         while (ctx.constraints.length != oldNConstrains) {
+            if (options.verbose) console.log(`STATUS: Optimizing Constraints. Currently there are ${ctx.constraints.length}`);
             oldNConstrains = ctx.constraints.length;
             reduceConstrains(ctx);
         }
     }
 
+    if (options.verbose) console.log("STATUS: Naming witnesses");
     generateWitnessNames(ctx);
 
     if (ctx.error) {
@@ -96,9 +102,11 @@ async function compile(srcFile, options) {
 
     ctx.scopes = [{}];
 
+    if (options.verbose) console.log("STATUS: Generating witness computation code");
     const mainCode = gen(ctx,ast);
     if (ctx.error) throw(ctx.error);
 
+    if (options.verbose) console.log("STATUS: Assembling circuit");
     const def = buildCircuitDef(ctx, mainCode);
 
     return def;

@@ -25,6 +25,7 @@ const __MASK__ = new bigInt(2).pow(253).minus(1);
 const assert = require("assert");
 const gen = require("./gencode");
 const exec = require("./exec");
+const include = require("./includer");
 const lc = require("./lcalgebra");
 
 module.exports = compile;
@@ -69,6 +70,9 @@ async function compile(srcFile, options) {
         fileName: fullFileName
     };
 
+
+    if (options.verbose) console.log("STATUS: Including");
+    include(ctx, ast);
 
     if (options.verbose) console.log("STATUS: Compiling circuit to R1CS");
     exec(ctx, ast);

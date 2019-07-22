@@ -17,15 +17,11 @@
     along with circom. If not, see <https://www.gnu.org/licenses/>.
 */
 
-const path = require("path");
-const fs = require("fs");
-
 const bigInt = require("big-integer");
 const __P__ = new bigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617");
 const __MASK__ = new bigInt(2).pow(253).minus(1);
 
 const lc = require("./lcalgebra");
-const parser = require("../parser/jaz.js").parser;
 
 /* TODO: Add lines information
 
@@ -1070,31 +1066,19 @@ function execSignalAssignConstrain(ctx, ast) {
 }
 
 function execInclude(ctx, ast) {
-    const incFileName = path.resolve(ctx.filePath, ast.file);
-    const incFilePath = path.dirname(incFileName);
+    if (ast.block) {
+        const oldFilePath = ctx.filePath;
+        const oldFileName = ctx.fileName;
+        ctx.filePath = ast.filePath;
+        ctx.fileName = ast.fileName;
 
-    ctx.includedFiles = ctx.includedFiles || [];
-    if (ctx.includedFiles[incFileName]) return;
+        exec(ctx, ast.block);
 
-    ctx.includedFiles[incFileName] = true;
-
-    const src = fs.readFileSync(incFileName, "utf8");
-
-    if (!src) return error(ctx, ast, "Include file not found: "+incFileName);
-
-    const incAst = parser.parse(src);
-
-    const oldFilePath = ctx.filePath;
-    const oldFileName = ctx.fileName;
-    ctx.filePath = incFilePath;
-    ctx.fileName = incFileName;
-
-    exec(ctx, incAst);
-
-    ast.block = incAst;
-
-    ctx.filePath = oldFilePath;
-    ctx.fileName = oldFileName;
+        ctx.filePath = oldFilePath;
+        ctx.fileName = oldFileName;
+    } else {
+        // No block means that the includer has already included this...
+    }
 }
 
 function execArray(ctx, ast) {

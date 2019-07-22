@@ -21,7 +21,7 @@
 
 /* eslint-disable no-console */
 
-const fs = require("fs");
+const streamingWrite = require("json-streamify").streamingWrite;
 const path = require("path");
 
 const compiler = require("./src/compiler");
@@ -56,13 +56,15 @@ if (argv._.length == 0) {
     process.exit(1);
 }
 
+
 const fullFileName = path.resolve(process.cwd(), inputFile);
 const outName = argv.output ?  argv.output : "circuit.json";
 
 compiler(fullFileName, {reduceConstraints: !argv.fast, verbose: !!argv.verbose}).then( (cir) => {
     if (argv.verbose) console.log(`STATUS: Writing circuit to: ${outName}`);
-    fs.writeFileSync(outName, JSON.stringify(cir, null, 1), "utf8");
-    process.exit(0);
+    streamingWrite(outName, cir, () => {
+        process.exit(0);
+    });
 }, (err) => {
 //    console.log(err);
     console.log(err.stack);

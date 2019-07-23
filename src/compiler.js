@@ -26,6 +26,7 @@ const assert = require("assert");
 const gen = require("./gencode");
 const exec = require("./exec");
 const include = require("./includer");
+const check = require("./type_checker");
 const lc = require("./lcalgebra");
 
 module.exports = compile;
@@ -52,6 +53,7 @@ async function compile(srcFile, options) {
 
     const ctx = {
         scopes: [{}],
+        typeScopes: [{}],
         signals: {
             one: {
                 fullName: "one",
@@ -74,8 +76,16 @@ async function compile(srcFile, options) {
     if (options.verbose) console.log("STATUS: Including");
     include(ctx, ast);
 
+    if (options.verbose) console.log("STATUS: Type checking");
+    check(ctx, ast);
+    if (ctx.error) {
+        throw(ctx.error);
+    }
     if (options.verbose) console.log("STATUS: Compiling circuit to R1CS");
     exec(ctx, ast);
+    if (ctx.error) {
+        throw(ctx.error);
+    }
 
     if (!ctx.components["main"]) {
         throw new Error("A main component must be defined");

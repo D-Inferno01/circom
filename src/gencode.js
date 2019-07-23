@@ -134,6 +134,10 @@ function gen(ctx, ast) {
         return genInclude(ctx, ast);
     } else if (ast.type == "ARRAY") {
         return genArray(ctx, ast);
+    } else if (ast.type == "INTCAST") {
+        return genIntCast(ctx, ast);
+    } else if (ast.type == "FIELDCAST") {
+        return genFieldCast(ctx, ast);
     } else {
         error(ctx, ast, "GEN -> Invalid AST node type: " + ast.type);
     }
@@ -424,27 +428,31 @@ function genSignalAssignConstrain(ctx, ast) {
 }
 
 function genVarAddAssignement(ctx, ast) {
-    return genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "+", values: ast.values}]});
+    return genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "+", kind: ast.kind, values: ast.values}]});
 }
 
 function genVarMulAssignement(ctx, ast) {
-    return genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "*", values: ast.values}]});
+    return genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "*", kind: ast.kind, values: ast.values}]});
 }
 
 function genPlusPlusRight(ctx, ast) {
-    return `(${genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "+", values: [ast.values[0], {type: "NUMBER", value: bigInt(1)}]}]})}).add(__P__).sub(bigInt(1)).mod(__P__)`;
+    if (ast.kind == "T_FIELD") {
+        return `(${genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "+", kind: ast.kind, values: [ast.values[0], {type: "NUMBER", value: bigInt(1)}]}]})}).add(__P__).sub(bigInt(1)).mod(__P__)`;
+    } else {
+        return `(${genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "+", values: [ast.values[0], {type: "NUMBER", value: bigInt(1)}]}]})}).sub(bigInt(1))`;
+    }
 }
 
 function genPlusPlusLeft(ctx, ast) {
-    return genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "+", values: [ast.values[0], {type: "NUMBER", value: bigInt(1)}]}]});
+    return genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "+", kind: ast.kind, values: [ast.values[0], {type: "NUMBER", value: bigInt(1)}]}]});
 }
 
 function genMinusMinusRight(ctx, ast) {
-    return `(${genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "-", values: [ast.values[0], {type: "NUMBER", value: bigInt(1)}]}]})}).add(__P__).sub(bigInt(1)).mod(__P__)`;
+    return maybeMod(`(${genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "-", kind: ast.kind, values: [ast.values[0], {type: "NUMBER", value: bigInt(1)}]}]})}).add(bigInt(1))`, ast.kind == "T_FIELD");
 }
 
 function genMinusMinusLeft(ctx, ast) {
-    return genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "-", values: [ast.values[0], {type: "NUMBER", value: bigInt(1)}]}]});
+    return genVarAssignement(ctx, {values: [ast.values[0], {type: "OP", op: "-", kind: ast.kind, values: [ast.values[0], {type: "NUMBER", value: bigInt(1)}]}]});
 }
 
 function genAdd(ctx, ast) {
@@ -452,7 +460,7 @@ function genAdd(ctx, ast) {
     if (ctx.error) return;
     const b = gen(ctx, ast.values[1]);
     if (ctx.error) return;
-    return `bigInt(${a}).add(bigInt(${b})).mod(__P__)`;
+    return maybeMod(`bigInt(${a}).add(bigInt(${b}))`, ast.kind == "T_FIELD");
 }
 
 function genMul(ctx, ast) {
@@ -460,7 +468,7 @@ function genMul(ctx, ast) {
     if (ctx.error) return;
     const b = gen(ctx, ast.values[1]);
     if (ctx.error) return;
-    return `bigInt(${a}).mul(bigInt(${b})).mod(__P__)`;
+    return maybeMod(`bigInt(${a}).mul(bigInt(${b}))`, ast.kind == "T_FIELD");
 }
 
 function genSub(ctx, ast) {
@@ -468,7 +476,7 @@ function genSub(ctx, ast) {
     if (ctx.error) return;
     const b = gen(ctx, ast.values[1]);
     if (ctx.error) return;
-    return `bigInt(${a}).add(__P__).sub(bigInt(${b})).mod(__P__)`;
+    return ast.kind == "T_FIELD" ? `bigInt(${a}).add(__P__).sub(bigInt(${b})).mod(__P__)` : `bigInt(${a}).sub(bigInt(${b}))`;
 }
 
 function genDiv(ctx, ast) {
@@ -477,7 +485,7 @@ function genDiv(ctx, ast) {
     const b = gen(ctx, ast.values[1]);
     if (ctx.error) return;
 
-    return `bigInt(${a}).mul( bigInt(${b}).inverse(__P__) ).mod(__P__)`;
+    return ast.kind == "T_FIELD" ? `bigInt(${a}).mul( bigInt(${b}).inverse(__P__) ).mod(__P__)` : `bigInt(${a}).div(${b})`;
 }
 
 function genIDiv(ctx, ast) {
@@ -494,7 +502,8 @@ function genExp(ctx, ast) {
     if (ctx.error) return;
     const b = gen(ctx, ast.values[1]);
     if (ctx.error) return;
-    return `bigInt(${a}).modPow(bigInt(${b}), __P__)`;
+    // TODO pow!
+    return ast.kind == "T_FIELD" ? `bigInt(${a}).modPow(bigInt(${b}), __P__)` : `bigInt(${a}).modPow(bigInt(${b}), __P__.mul(__P__))`;
 }
 
 function genBAnd(ctx, ast) {
@@ -502,7 +511,7 @@ function genBAnd(ctx, ast) {
     if (ctx.error) return;
     const b = gen(ctx, ast.values[1]);
     if (ctx.error) return;
-    return `bigInt(${a}).and(bigInt(${b})).and(__MASK__)`;
+    return maybeMask(`bigInt(${a}).and(bigInt(${b}))`, ast.kind == "T_FIELD");
 }
 
 function genAnd(ctx, ast) {
@@ -526,7 +535,11 @@ function genShl(ctx, ast) {
     if (ctx.error) return;
     const b = gen(ctx, ast.values[1]);
     if (ctx.error) return;
-    return `bigInt(${b}).greater(bigInt(256)) ? 0 : bigInt(${a}).shl(bigInt(${b})).and(__MASK__)`;
+    if (ast.kind == "T_FIELD") {
+        return `bigInt(${b}).greater(bigInt(256)) ? 0 : bigInt(${a}).shl(bigInt(${b})).and(__MASK__)`;
+    } else {
+        return `bigInt(${a}).shl(bigInt(${b}))`;
+    }
 }
 
 function genShr(ctx, ast) {
@@ -534,7 +547,11 @@ function genShr(ctx, ast) {
     if (ctx.error) return;
     const b = gen(ctx, ast.values[1]);
     if (ctx.error) return;
-    return `bigInt(${b}).greater(bigInt(256)) ? 0 : bigInt(${a}).shr(bigInt(${b})).and(__MASK__)`;
+    if (ast.kind == "T_FIELD") {
+        return `bigInt(${b}).greater(bigInt(256)) ? 0 : bigInt(${a}).shr(bigInt(${b})).and(__MASK__)`;
+    } else {
+        return `bigInt(${a}).shr(bigInt(${b}))`;
+    }
 }
 
 function genMod(ctx, ast) {
@@ -622,4 +639,21 @@ function genArray(ctx, ast) {
     S+="]";
     return S;
 }
+
+function maybeMod(exprStr, applyMod) {
+    return applyMod ? `${exprStr}.mod(__P__)` : exprStr;
+}
+
+function maybeMask(exprStr, applyMod) {
+    return applyMod ? `${exprStr}.and(__MASK__)` : exprStr;
+}
+
+function genIntCast(ctx, ast) {
+    return gen(ctx, ast.expression);
+}
+
+function genFieldCast(ctx, ast) {
+    return maybeMod(gen(ctx, ast.expression), true);
+}
+
 

@@ -33,6 +33,8 @@ private                 { return 'private'; }
 input                   { return 'input'; }
 output                  { return 'output'; }
 linearCombination       { return 'linearCombination'; }
+field                   { return 'field'; }
+int                     { return 'int'; }
 component               { return 'component'; }
 compute                 { return 'compute'; }
 template                { return 'template'; }
@@ -852,32 +854,37 @@ leftHandExpression
 declaration
     : 'var' simpleLeftHandExpression %prec DECL
         {
-            $$ = {type: "DECLARE", declareType: "VARIABLE", name: $2}
+            $$ = {type: "DECLARE", kind: "T_FIELD", declareType: "VARIABLE", name: $2}
+            setLines($$, @1, @2);
+        }
+    | 'int' simpleLeftHandExpression %prec DECL
+        {
+            $$ = {type: "DECLARE", kind: "T_INT", declareType: "VARIABLE", name: $2}
             setLines($$, @1, @2);
         }
     | 'signal' simpleLeftHandExpression %prec DECL
         {
-            $$ = {type: "DECLARE", declareType: "SIGNAL", name: $2}
+            $$ = {type: "DECLARE", kind: "T_FIELD", declareType: "SIGNAL", name: $2}
             setLines($$, @1, @2);
         }
     | 'signal' 'input' simpleLeftHandExpression %prec DECL
         {
-            $$ = {type: "DECLARE", declareType: "SIGNALIN", name: $3};
+            $$ = {type: "DECLARE", kind: "T_FIELD", declareType: "SIGNALIN", name: $3};
             setLines($$, @1, @3);
         }
     | 'signal' 'private' 'input' simpleLeftHandExpression %prec DECL
         {
-            $$ = {type: "DECLARE", declareType: "SIGNALIN", private: true, name: $4};
+            $$ = {type: "DECLARE", kind: "T_FIELD", declareType: "SIGNALIN", private: true, name: $4};
             setLines($$, @1, @4);
         }
     | 'signal' 'output' simpleLeftHandExpression %prec DECL
         {
-            $$ = {type: "DECLARE", declareType: "SIGNALOUT", name: $3};
+            $$ = {type: "DECLARE", kind: "T_FIELD", declareType: "SIGNALOUT", name: $3};
             setLines($$, @1, @3);
         }
     | 'component' simpleLeftHandExpression %prec DECL
         {
-            $$ = {type: "DECLARE", declareType: "COMPONENT", name: $2}
+            $$ = {type: "DECLARE", kind: "T_COMPONENT", declareType: "COMPONENT", name: $2}
             setLines($$, @1, @2);
         }
     ;
@@ -898,7 +905,17 @@ simpleLeftHandExpression
     ;
 
 functionCall
-    : IDENTIFIER '(' expressionList ')'
+    : 'field' '(' expression ')'
+        {
+            $$ = {type: "FIELDCAST", expression: $3}
+            setLines($$, @1, @4);
+        }
+    | 'int' '(' expression ')'
+        {
+            $$ = {type: "INTCAST", expression: $3}
+            setLines($$, @1, @4);
+        }
+    | IDENTIFIER '(' expressionList ')'
         {
             $$ = {type: "FUNCTIONCALL", name: $1, params: $3.expressions}
             setLines($$, @1, @4);

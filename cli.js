@@ -23,6 +23,7 @@
 
 const streamingWrite = require("json-streamify").streamingWrite;
 const path = require("path");
+const fs = require("fs");
 
 const compiler = require("./src/compiler");
 
@@ -56,6 +57,32 @@ if (argv._.length == 0) {
     process.exit(1);
 }
 
+function leftPad(num, rep, len) {
+    return rep.repeat(len - String(num).length) + num;
+}
+
+function errorLocationString(err) {
+    const { errFile, pos } = err;
+    const { first_line, first_column, last_line, last_column } = pos;
+
+    const fStr = String(fs.readFileSync(errFile));
+    const lines = fStr.split(/\r?\n/);
+    const linesToShow = Array.from(lines.entries()).slice(first_line - 2, last_line + 1);
+
+    let str = "";
+
+    let maxlinenowidth = Math.max(...linesToShow.map((pair) => String(pair[0] + 1).length));
+
+    for (const [lineno, line] of linesToShow) {
+        str += `${leftPad(lineno + 1, " ", maxlinenowidth + 1)}|${line}\n`;
+        if (first_line == last_line && lineno == first_line - 1) {
+            str += " ".repeat(maxlinenowidth + 2 + first_column);
+            str += "^".repeat(last_column - first_column);
+            str += "\n";
+        }
+    }
+    return str;
+}
 
 const fullFileName = path.resolve(process.cwd(), inputFile);
 const outName = argv.output ?  argv.output : "circuit.json";
@@ -66,16 +93,12 @@ compiler(fullFileName, {reduceConstraints: !argv.fast, verbose: !!argv.verbose})
         process.exit(0);
     });
 }, (err) => {
-//    console.log(err);
-    console.log(err.stack);
     if (err.pos) {
-        console.error(`ERROR at ${err.errFile}:${err.pos.first_line},${err.pos.first_column}-${err.pos.last_line},${err.pos.last_column}   ${err.errStr}`);
+        console.error(`ERROR at ${err.errFile}:${err.pos.first_line},${err.pos.first_column}-${err.pos.last_line},${err.pos.last_column}\n${err.errStr}\n\n${errorLocationString(err)}`);
+        if (argv.verbose) console.log(err.stack);
     } else {
         console.log(err.message);
         if (argv.verbose) console.log(err.stack);
-    }
-    if (err.ast) {
-        console.error(JSON.stringify(err.ast, null, 1));
     }
     process.exit(1);
 });

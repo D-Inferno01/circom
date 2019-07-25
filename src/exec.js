@@ -125,6 +125,8 @@ function exec(ctx, ast) {
         }
     } else if (ast.type == "FUNCTIONCALL") {
         return execFunctionCall(ctx, ast);
+    } else if (ast.type == "LOG") {
+        return execLog(ctx, ast);
     } else if (ast.type == "BLOCK") {
         return execBlock(ctx, ast);
     } else if (ast.type == "COMPUTEBLOCK") {
@@ -393,13 +395,12 @@ function execInstantiateComponet(ctx, vr, fn) {
     }
 }
 
-function execFunctionCall(ctx, ast) {
+function execLog(ctx, ast) {
+    const v = exec(ctx, ast.expression);
+    console.log(`Log statement on line ${ast.first_line}: ${v.value.toString()}`);
+}
 
-    if (ast.name == "log") {
-        const v = exec(ctx, ast.params[0]);
-        console.log(v.value.toString());
-        return;
-    }
+function execFunctionCall(ctx, ast) {
 
     const scopeLevel = getScopeLevel(ctx, ast.name);
     if (scopeLevel == -1) return error(ctx, ast, "Function not defined: " + ast.name);

@@ -114,6 +114,8 @@ function gen(ctx, ast) {
         }
     } else if (ast.type == "FUNCTIONCALL") {
         return genFunctionCall(ctx, ast);
+    } else if (ast.type == "LOG") {
+        return genLog(ctx, ast);
     } else if (ast.type == "COMPUTEBLOCK") {
         return genBlock(ctx, ast);
     } else if (ast.type == "BLOCK") {
@@ -167,6 +169,10 @@ function getScope(ctx, name) {
 }
 
 
+function genLog(ctx, ast) {
+    return `console.log("Log call on line ${ast.first_line}: " + ${gen(ctx, ast.expression)})`;
+}
+
 function genFunctionCall(ctx, ast) {
     let S = "[";
     for (let i=0; i<ast.params.length; i++) {
@@ -174,7 +180,6 @@ function genFunctionCall(ctx, ast) {
         S += gen(ctx, ast.params[i]);
     }
     S+="]";
-
     return `ctx.callFunction("${ast.name}", ${S})`;
 }
 

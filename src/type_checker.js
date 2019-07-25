@@ -89,6 +89,9 @@ function check(ctx, ast) {
     } else if (ast.type == "INTCAST") {
         check(ctx, ast.expression);
         ast.kind = "T_INT";
+    } else if (ast.type == "LOG") {
+        check(ctx, ast.expression);
+        ast.kind = ast.expression.kind;
     } else if (ast.type == "FIELDCAST") {
         check(ctx, ast.expression);
         ast.kind = "T_FIELD";

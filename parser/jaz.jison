@@ -35,6 +35,7 @@ output                  { return 'output'; }
 linearCombination       { return 'linearCombination'; }
 field                   { return 'field'; }
 int                     { return 'int'; }
+log                     { return 'log'; }
 component               { return 'component'; }
 compute                 { return 'compute'; }
 template                { return 'template'; }
@@ -913,6 +914,11 @@ functionCall
     | 'int' '(' expression ')'
         {
             $$ = {type: "INTCAST", expression: $3}
+            setLines($$, @1, @4);
+        }
+    | 'log' '(' expression ')'
+        {
+            $$ = {type: "LOG", expression: $3}
             setLines($$, @1, @4);
         }
     | IDENTIFIER '(' expressionList ')'

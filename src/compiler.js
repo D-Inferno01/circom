@@ -250,6 +250,8 @@ function reduceConstants(ctx) {
 
 function reduceConstrains(ctx) {
     const newConstraints = [];
+
+    // For each old constraint
     for (let i=0; i<ctx.constraints.length; i++) {
         const c = ctx.constraints[i];
 
@@ -263,13 +265,13 @@ function reduceConstrains(ctx) {
         // Mov to C if possible.
         if (isConstant(c.a)) {
             const ct = {type: "NUMBER", value: c.a.values["one"]};
-            c.c = lc.add(lc.mul(c.b, ct), c.c);
+            c.c = lc.canonize(ctx, lc.add(lc.mul(c.b, ct), c.c));
             c.a = { type: "LINEARCOMBINATION", values: {} };
             c.b = { type: "LINEARCOMBINATION", values: {} };
         }
         if (isConstant(c.b)) {
             const ct = {type: "NUMBER", value: c.b.values["one"]};
-            c.c = lc.add(lc.mul(c.a, ct), c.c);
+            c.c = lc.canonize(ctx, lc.add(lc.mul(c.a, ct), c.c));
             c.a = { type: "LINEARCOMBINATION", values: {} };
             c.b = { type: "LINEARCOMBINATION", values: {} };
         }

@@ -397,7 +397,9 @@ function execInstantiateComponet(ctx, vr, fn) {
 
 function execLog(ctx, ast) {
     const v = exec(ctx, ast.expression);
-    console.log(`Log statement on line ${ast.first_line}: ${v.value.toString()}`);
+    if (v.value) {
+        console.log(`Log statement on line ${ast.first_line}: ${v.value.toString()}`);
+    }
 }
 
 function execFunctionCall(ctx, ast) {

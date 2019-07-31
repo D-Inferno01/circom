@@ -425,7 +425,7 @@ function genConstrain(ctx, ast) {
     if (ctx.error) return;
     const b = gen(ctx, ast.values[1]);
     if (ctx.error) return;
-    return `ctx.assert(${a}, ${b})`;
+    return `ctx.assert(${a}, ${b}, "${ctx.fileName}:${ast.first_line}")`;
 }
 
 function genSignalAssignConstrain(ctx, ast) {
@@ -632,7 +632,19 @@ function genTerCon(ctx, ast) {
 }
 
 function genInclude(ctx, ast) {
-    return ast.block ? gen(ctx, ast.block) : "";
+    let result = "";
+    if (ast.block) {
+        const oldFilePath = ctx.filePath;
+        const oldFileName = ctx.fileName;
+        ctx.filePath = ast.filePath;
+        ctx.fileName = ast.fileName;
+
+        result = gen(ctx, ast.block);
+
+        ctx.filePath = oldFilePath;
+        ctx.fileName = oldFileName;
+    }
+    return result;
 }
 
 function genArray(ctx, ast) {

@@ -106,6 +106,7 @@ async function compile(srcFile, options) {
             reduceConstrains(ctx);
         }
     }
+    if (options.verbose) console.log(`STATUS: Final constraint count:                     ${ctx.constraints.length}`);
 
     if (options.verbose) console.log("STATUS: Naming witnesses");
     generateWitnessNames(ctx);

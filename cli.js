@@ -35,8 +35,10 @@ const argv = require("yargs")
     .alias("o", "output")
     .help("h")
     .alias("h", "help")
+    .boolean("verbose")
     .alias("v", "verbose")
     .describe("v", "print status messages")
+    .boolean("fast")
     .alias("f", "fast")
     .describe("f", "don't optimize constraints")
     .epilogue(`Copyright (C) 2018  0kims association
@@ -45,7 +47,6 @@ const argv = require("yargs")
     under certain conditions; see the COPYING file in the official
     repo directory at  https://github.com/iden3/circom `)
     .argv;
-
 
 let inputFile;
 if (argv._.length == 0) {

@@ -576,7 +576,9 @@ function execFor(ctx, ast) {
 
     if (typeof v.value != "undefined") {
         while ((v.value.neq(0))&&(!ctx.returnValue)) {
+            ctx.scopes.push({});
             exec(ctx, ast.body);
+            ctx.scopes.pop();
             if (ctx.error) return;
 
             exec(ctx, ast.step);
@@ -595,7 +597,9 @@ function execWhile(ctx, ast) {
 
     if (typeof v.value != "undefined") {
         while ((v.value.neq(0))&&(!ctx.returnValue)) {
+            ctx.scopes.push({});
             exec(ctx, ast.body);
+            ctx.scopes.pop();
             if (ctx.error) return;
 
             v = exec(ctx, ast.condition);

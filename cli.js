@@ -21,7 +21,6 @@
 
 /* eslint-disable no-console */
 
-const streamingWrite = require("json-streamify").streamingWrite;
 const path = require("path");
 const fs = require("fs");
 
@@ -85,14 +84,65 @@ function errorLocationString(err) {
     return str;
 }
 
+function streamingWrite(path, json) {
+    const fd = fs.openSync(path, "w");
+    function helper(fd, json) {
+        switch (typeof json) {
+        case "object":
+            if (json === null) {
+                fs.writeSync(fd, "null");
+            } else if (Array.isArray(json)) {
+                fs.writeSync(fd, "[");
+                {
+                    let first = true;
+                    for (let val of json) {
+                        if (first) {
+                            first = false;
+                        } else {
+                            fs.writeSync(fd, ",");
+                        }
+                        helper(fd, val);
+                    }
+                }
+                fs.writeSync(fd, "]");
+                break;
+            }else {
+                fs.writeSync(fd, "{");
+                {
+                    let first = true;
+                    for (let key in json) {
+                        if (first) {
+                            first = false;
+                        } else {
+                            fs.writeSync(fd, ",");
+                        }
+                        fs.writeSync(fd, JSON.stringify(key));
+                        fs.writeSync(fd, ": ");
+                        helper(fd, json[key]);
+                    }
+                }
+                fs.writeSync(fd, "}");
+            }
+            break;
+        case "string":
+        case "number":
+        case "boolean":
+            fs.writeSync(fd, JSON.stringify(json));
+            break;
+        default:
+            throw `Unknown type ${typeof json}`;
+        }
+    }
+    helper(fd, json);
+}
+
 const fullFileName = path.resolve(process.cwd(), inputFile);
-const outName = argv.output ?  argv.output : "circuit.json";
+const outName = argv.output ? argv.output : "circuit.json";
 
 compiler(fullFileName, {reduceConstraints: !argv.fast, verbose: !!argv.verbose}).then( (cir) => {
     if (argv.verbose) console.log(`STATUS: Writing circuit to: ${outName}`);
-    streamingWrite(outName, cir, () => {
-        process.exit(0);
-    });
+    streamingWrite(outName, cir);
+    process.exit(0);
 }, (err) => {
     if (err.pos) {
         console.error(`ERROR at ${err.errFile}:${err.pos.first_line},${err.pos.first_column}-${err.pos.last_line},${err.pos.last_column}\n${err.errStr}\n\n${errorLocationString(err)}`);
@@ -103,7 +153,3 @@ compiler(fullFileName, {reduceConstraints: !argv.fast, verbose: !!argv.verbose})
     }
     process.exit(1);
 });
-
-
-
-

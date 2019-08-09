@@ -31,8 +31,7 @@
   "dependencies": {
     "big-integer": "^1.6.32",
     "optimist": "^0.6.1",
-    "yargs": "^12.0.2",
-    "json-streamify": "^0.1.4"
+    "yargs": "^12.0.2"
   },
   "devDependencies": {
     "chai": "^4.2.0",

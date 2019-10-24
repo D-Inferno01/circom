@@ -86,6 +86,13 @@ function signal2lc(a) {
     }
 }
 
+function typeError(expressionType, expressionStr) {
+    return {
+        type: "ERROR",
+        errStr: `Invalid ${expressionType}: ${expressionStr}.\nThis will not lead to a rank-1 constraint!`,
+    };
+}
+
 function clone(a) {
     const res = {};
     res.type = a.type;
@@ -104,7 +111,7 @@ function clone(a) {
         res.errStr = a.errStr;
     } else {
         res.type = "ERROR";
-        res.errStr = "Invilid type when clonning: "+a.type;
+        res.errStr = "Invilid type when cloning: "+a.type;
     }
     return res;
 }
@@ -140,7 +147,7 @@ function add(_a, _b) {
         } else if (b.type=="LINEARCOMBINATION") {
             return addQEQLC(a,b);
         } else if (b.type=="QEQ") {
-            return { type: "ERROR", errStr: "QEQ + QEQ" };
+            return typeError("sum", "{quadratic} + {quadratic}");
         } else {
             return { type: "ERROR", errStr: "LC Add Invalid Type 2: "+b.type };
         }
@@ -218,7 +225,7 @@ function mul(_a, _b) {
         } else if (b.type=="LINEARCOMBINATION") {
             return mulLCLC(a,b);
         } else if (b.type=="QEQ") {
-            return { type: "ERROR", errStr: "LC * QEQ" };
+            return typeError("product", "{linear} * {quadratic}");
         } else {
             return { type: "ERROR", errStr: "LC Mul Invalid Type 2: "+b.type };
         }
@@ -226,9 +233,9 @@ function mul(_a, _b) {
         if (b.type == "NUMBER") {
             return mulQEQNum(a,b);
         } else if (b.type=="LINEARCOMBINATION") {
-            return { type: "ERROR", errStr: "QEC * LC" };
+            return typeError("product", "{quadratic} * {linear}");
         } else if (b.type=="QEQ") {
-            return { type: "ERROR", errStr: "QEQ * QEQ" };
+            return typeError("product", "{quadratic} * {quadratic}");
         } else {
             return { type: "ERROR", errStr: "LC Mul Invalid Type 2: "+b.type };
         }
